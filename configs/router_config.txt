@@ -1,0 +1,99 @@
+! ============================================================
+! Enterprise Network - Core Router Configuration
+! Device: Cisco 2911 Router
+! Author: Kadari Eshwar | B.Tech ECE, JNTU Hyderabad
+! ============================================================
+
+hostname Core-Router
+enable secret cisco123
+service password-encryption
+
+! ── Interface Configuration ────────────────────────────────
+interface GigabitEthernet0/0
+ description UPLINK to Core-Switch
+ ip address 192.168.1.254 255.255.255.0
+ ip nat inside
+ no shutdown
+
+interface GigabitEthernet0/1
+ description WAN - Internet Connection
+ ip address 203.0.113.1 255.255.255.252
+ ip nat outside
+ no shutdown
+
+interface GigabitEthernet0/2
+ description DMZ Zone
+ ip address 192.168.50.254 255.255.255.0
+ ip nat inside
+ no shutdown
+
+! ── NAT Configuration ──────────────────────────────────────
+ip nat inside source list 10 interface GigabitEthernet0/1 overload
+access-list 10 permit 192.168.0.0 0.0.255.255
+
+! ── OSPF Routing ───────────────────────────────────────────
+router ospf 1
+ router-id 1.1.1.1
+ network 192.168.1.0 0.0.0.255 area 0
+ network 192.168.50.0 0.0.0.255 area 0
+ default-information originate
+
+! ── Default Route ──────────────────────────────────────────
+ip route 0.0.0.0 0.0.0.0 203.0.113.2
+
+! ── Firewall ACLs ──────────────────────────────────────────
+ip access-list extended FIREWALL_IN
+ ! Allow established connections
+ permit tcp any any established
+ ! Allow HTTP/HTTPS to DMZ
+ permit tcp any 192.168.50.0 0.0.0.255 eq 80
+ permit tcp any 192.168.50.0 0.0.0.255 eq 443
+ ! Allow DNS
+ permit udp any 192.168.50.11 eq 53
+ ! Allow ICMP for monitoring
+ permit icmp 192.168.40.0 0.0.0.255 any
+ ! Block everything else from WAN
+ deny ip any any log
+
+ip access-list extended VLAN_SECURITY
+ ! Management can access everything
+ permit ip 192.168.40.0 0.0.0.255 any
+ ! Block Finance from IT
+ deny ip 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255 log
+ ! Block HR from Finance
+ deny ip 192.168.30.0 0.0.0.255 192.168.20.0 0.0.0.255 log
+ ! Allow same-VLAN traffic
+ permit ip 192.168.10.0 0.0.0.255 192.168.10.0 0.0.0.255
+ permit ip 192.168.20.0 0.0.0.255 192.168.20.0 0.0.0.255
+ permit ip 192.168.30.0 0.0.0.255 192.168.30.0 0.0.0.255
+ ! Allow all to DMZ HTTP/HTTPS only
+ permit tcp any 192.168.50.0 0.0.0.255 eq 80
+ permit tcp any 192.168.50.0 0.0.0.255 eq 443
+ deny ip any 192.168.50.0 0.0.0.255 log
+ ! Allow ICMP
+ permit icmp any any
+ ! Default deny
+ deny ip any any log
+
+interface GigabitEthernet0/0
+ ip access-group VLAN_SECURITY in
+
+interface GigabitEthernet0/1
+ ip access-group FIREWALL_IN in
+
+! ── SSH Configuration ──────────────────────────────────────
+ip domain-name enterprise.local
+crypto key generate rsa modulus 2048
+ip ssh version 2
+ip ssh time-out 60
+ip ssh authentication-retries 3
+line vty 0 4
+ transport input ssh
+ login local
+ exec-timeout 10 0
+username admin privilege 15 secret admin@123
+
+! ── Logging ────────────────────────────────────────────────
+logging buffered 16384
+logging trap warnings
+service timestamps log datetime msec
