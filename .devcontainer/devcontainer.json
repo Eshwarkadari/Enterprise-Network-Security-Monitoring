@@ -1,0 +1,12 @@
+{
+  "name": "Enterprise Network Security Monitor",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "pip install flask requests",
+  "forwardPorts": [5000],
+  "portsAttributes": {
+    "5000": { "label": "Security Dashboard", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "vscode": { "extensions": ["ms-python.python"] }
+  }
+}
