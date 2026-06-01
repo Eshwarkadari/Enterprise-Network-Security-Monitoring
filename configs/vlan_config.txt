@@ -1,0 +1,74 @@
+! ============================================================
+! VLAN & Access Switch Configuration
+! Author: Kadari Eshwar | B.Tech ECE, JNTU Hyderabad
+! ============================================================
+
+! ── IT Access Switch (Cisco 2960) ──────────────────────────
+hostname IT-Switch
+!
+vlan 10
+ name IT_Department
+vlan 40
+ name Management
+!
+interface range FastEthernet0/1-20
+ description IT Department PCs
+ switchport mode access
+ switchport access vlan 10
+ switchport port-security maximum 2
+ switchport port-security violation restrict
+ switchport port-security
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+!
+interface range FastEthernet0/21-24
+ description Management Ports
+ switchport mode access
+ switchport access vlan 40
+!
+interface GigabitEthernet0/1
+ description UPLINK to Core-Switch
+ switchport mode trunk
+ switchport trunk allowed vlan 10,40
+
+! ── Finance Access Switch ──────────────────────────────────
+hostname Finance-Switch
+!
+vlan 20
+ name Finance
+!
+interface range FastEthernet0/1-20
+ description Finance Department PCs
+ switchport mode access
+ switchport access vlan 20
+ switchport port-security maximum 1
+ switchport port-security violation shutdown
+ switchport port-security
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+!
+interface GigabitEthernet0/1
+ description UPLINK to Core-Switch
+ switchport mode trunk
+ switchport trunk allowed vlan 20,40
+
+! ── HR Access Switch ───────────────────────────────────────
+hostname HR-Switch
+!
+vlan 30
+ name HR_Department
+!
+interface range FastEthernet0/1-20
+ description HR Department PCs
+ switchport mode access
+ switchport access vlan 30
+ switchport port-security maximum 2
+ switchport port-security violation restrict
+ switchport port-security
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+!
+interface GigabitEthernet0/1
+ description UPLINK to Core-Switch
+ switchport mode trunk
+ switchport trunk allowed vlan 30,40
